@@ -19,7 +19,7 @@ jobs:
     timeout-minutes: 30
 
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
         with:
           # The build never pushes, so the job keeps no git credentials on disk.
           persist-credentials: false
@@ -29,9 +29,9 @@ jobs:
           distribution: temurin
           java-version: 17
 
-      - uses: gradle/actions/wrapper-validation@v5
+      - uses: gradle/actions/wrapper-validation@v6
 
-      - uses: gradle/actions/setup-gradle@v5
+      - uses: gradle/actions/setup-gradle@v6
 
       # The real Firebase config is never committed. CI uses the repo secret if set,
       # otherwise a placeholder that is only good enough to compile.
@@ -76,14 +76,14 @@ jobs:
           done
           echo "::notice title=Lint total::$(tail -n 1 "$report")"
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         if: success()
         with:
           name: plantshome-debug-apk
           path: app/build/outputs/apk/debug/*.apk
           retention-days: 14
 
-      - uses: actions/upload-artifact@v6
+      - uses: actions/upload-artifact@v7
         if: always()
         with:
           name: lint-report
