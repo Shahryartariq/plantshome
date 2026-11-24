@@ -48,7 +48,7 @@ jobs:
       - name: Build debug + release, lint, unit tests
         run: |
           set -o pipefail
-          ./gradlew --no-daemon assembleDebug assembleRelease lintDebug testDebugUnitTest 2>&1 | tee build.log
+          ./gradlew --no-daemon assembleDebug assembleDebugAndroidTest assembleRelease lintDebug testDebugUnitTest 2>&1 | tee build.log
 
       - name: Show build errors
         if: failure()

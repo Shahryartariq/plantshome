@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -23,6 +24,9 @@ import java.util.List;
 import java.util.Locale;
 
 public class HomeFragment extends Fragment {
+
+    private static final int COLUMNS = 2;
+    private static final int ROW_HEIGHT_DP = 200;
 
     private FragmentHomeBinding binding;
     /** The cards in their original order, so filtering can put them back. */
@@ -67,14 +71,31 @@ public class HomeFragment extends Fragment {
         for (int i = 0; i < cards.size(); i++) {
             String name = getString(PlantCatalog.all().get(i).name).toLowerCase(Locale.getDefault());
             if (needle.isEmpty() || name.contains(needle)) {
-                grid.addView(cards.get(i));
+                grid.addView(cards.get(i), freshCell(cards.get(i)));
                 matches++;
             }
         }
+        // fragment_home.xml gives the grid a 1000dp minimum height: 5 rows of 200dp for 10 cards.
+        // Keep 200dp per row when fewer cards show, instead of stretching them over 1000dp.
+        int rows = (matches + COLUMNS - 1) / COLUMNS;
+        grid.setMinimumHeight(rows * Math.round(ROW_HEIGHT_DP * getResources().getDisplayMetrics().density));
         // With no matches the grid is empty, so the title explains why.
         binding.textHome.setText(matches == 0
                 ? getString(R.string.search_no_results, query)
                 : getString(R.string.home_title));
+    }
+
+    /**
+     * GridLayout writes each card's cell into its LayoutParams. Re-adding a card with its old
+     * cell breaks the grid (and crashes once the row is past rowCount), so let the grid place it
+     * again, with the same weights as in fragment_home.xml.
+     */
+    private static GridLayout.LayoutParams freshCell(View card) {
+        GridLayout.LayoutParams params = new GridLayout.LayoutParams(
+                (ViewGroup.MarginLayoutParams) card.getLayoutParams());
+        params.rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+        params.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+        return params;
     }
 
     private static void bindCard(View card, Plant plant) {

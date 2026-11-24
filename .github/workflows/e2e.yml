@@ -1,0 +1,116 @@
+name: End-to-end
+
+# Runs the whole app on a real Android system (emulator) against the Firebase Auth
+# emulator: sign up, verify, every screen, sign out, sign in, delete account.
+on:
+  push:
+    branches: [main, 'e2e/**']
+  pull_request:
+    paths:
+      - 'app/**'
+      - 'gradle/**'
+      - '.github/ci/**'
+      - '.github/workflows/e2e.yml'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: e2e-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  journey:
+    name: Full journey on Android 14
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    permissions:
+      # Only used on e2e/** branches, to commit the screenshots for review.
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: ${{ github.event_name == 'push' && startsWith(github.ref, 'refs/heads/e2e/') }}
+
+      # Java 21: needed by the Firebase emulator, and fine for the Android build.
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - uses: gradle/actions/setup-gradle@v6
+
+      - name: Firebase config for the Auth emulator
+        run: |
+          sed 's/plantshome-ci-placeholder/demo-plantshome/g' .github/ci/google-services.ci.json > app/google-services.json
+
+      - name: Build app and test APKs
+        run: |
+          set -o pipefail
+          ./gradlew --no-daemon assembleDebug assembleDebugAndroidTest 2>&1 | tee build.log
+
+      - name: Start the Firebase Auth emulator
+        run: |
+          npm install --global --no-fund --no-audit firebase-tools@14
+          echo '{"emulators":{"auth":{"host":"0.0.0.0","port":9099},"ui":{"enabled":false}}}' > firebase.json
+          firebase emulators:start --only auth --project demo-plantshome > auth-emulator.log 2>&1 &
+          for i in $(seq 1 60); do
+            curl -sf http://127.0.0.1:9099/ > /dev/null && { echo "Auth emulator is up"; exit 0; }
+            sleep 2
+          done
+          cat auth-emulator.log
+          exit 1
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run the journey on an Android emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
+          script: bash .github/ci/run-e2e.sh
+
+      - name: Show failures
+        if: failure()
+        run: |
+          { grep -A40 -E "FAILURES|INSTRUMENTATION_FAILED|stack=" e2e/instrument.txt | head -80;
+            grep -A25 "FATAL EXCEPTION" e2e/logcat.txt | head -60;
+            grep -A30 "What went wrong" build.log | head -40; } > failures.txt 2>/dev/null || true
+          split -l 25 failures.txt chunk_ || true
+          for f in chunk_*; do
+            [ -f "$f" ] || continue
+            msg=$(sed ':a;N;$!ba;s/%/%25/g;s/\r//g;s/\n/%0A/g' "$f")
+            echo "::error title=E2E::${msg}"
+          done
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: e2e-results
+          path: |
+            e2e/
+            auth-emulator.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+      # On e2e/** branches, commit the device screenshots so they can be reviewed in the repo.
+      - name: Commit screenshots
+        if: always() && github.event_name == 'push' && startsWith(github.ref, 'refs/heads/e2e/')
+        run: |
+          ls e2e/screens/*.png > /dev/null 2>&1 || exit 0
+          mkdir -p docs/e2e && rm -f docs/e2e/*.png && cp e2e/screens/*.png docs/e2e/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --force docs/e2e
+          git diff --cached --quiet && exit 0
+          git commit -m "E2E screenshots from the Android emulator"
+          git push
