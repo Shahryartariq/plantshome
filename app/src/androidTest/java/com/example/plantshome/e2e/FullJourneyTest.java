@@ -256,8 +256,19 @@ public class FullJourneyTest {
     }
 
     private static void openDrawer() {
-        onView(withContentDescription("Open navigation drawer")).perform(click());
-        E2E.waitFor(withId(R.id.nav_view), SHORT);
+        // A tap that lands while the screen is still settling after a transition can be lost;
+        // try once more before failing.
+        for (int attempt = 1; ; attempt++) {
+            onView(withContentDescription("Open navigation drawer")).perform(click());
+            try {
+                E2E.waitFor(withId(R.id.nav_view), 5_000);
+                return;
+            } catch (AssertionError notOpen) {
+                if (attempt == 2) {
+                    throw notOpen;
+                }
+            }
+        }
     }
 
     private static void drawerItem(int label) {

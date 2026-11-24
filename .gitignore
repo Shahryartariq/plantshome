@@ -16,3 +16,6 @@ google-services.json
 *.jks
 *.keystore
 keystore.properties
+
+# Device screenshots from the e2e workflow (committed only on e2e/** branches)
+/docs/e2e/
