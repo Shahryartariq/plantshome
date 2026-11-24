@@ -110,7 +110,7 @@ jobs:
           mkdir -p docs/e2e && rm -f docs/e2e/*.png && cp e2e/screens/*.png docs/e2e/
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/e2e
+          git add --force docs/e2e
           git diff --cached --quiet && exit 0
           git commit -m "E2E screenshots from the Android emulator"
           git push
