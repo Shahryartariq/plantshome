@@ -1,6 +1,8 @@
 package com.example.plantshome;
 
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 
 import com.example.plantshome.databinding.ActivityVerifyemailBinding;
 import com.example.plantshome.util.AppNavigator;
@@ -12,6 +14,12 @@ import com.google.firebase.auth.FirebaseUser;
  * Gate between sign in and the app: the user stays here until their email is verified.
  */
 public class VerifyEmailActivity extends BaseActivity {
+
+    private static final long RECHECK_MS = 4000;
+
+    private final Handler handler = new Handler(Looper.getMainLooper());
+    private final Runnable checkVerified = this::checkIfVerified;
+    private boolean visible;
 
     private ActivityVerifyemailBinding binding;
     private FirebaseAuth auth;
@@ -34,15 +42,30 @@ public class VerifyEmailActivity extends BaseActivity {
     @Override
     protected void onResume() {
         super.onResume();
-        // The user verifies in their email app, then comes back: refresh and move on.
+        visible = true;
+        // The user may open the link on any device: check now and every few seconds while visible.
+        checkVerified.run();
+    }
+
+    @Override
+    protected void onPause() {
+        visible = false;
+        handler.removeCallbacks(checkVerified);
+        super.onPause();
+    }
+
+    private void checkIfVerified() {
         FirebaseUser user = auth.getCurrentUser();
         if (user == null) {
             return;
         }
-        user.reload().addOnSuccessListener(this, unused -> {
+        user.reload().addOnCompleteListener(this, task -> {
             FirebaseUser fresh = auth.getCurrentUser();
-            if (fresh != null && fresh.isEmailVerified()) {
+            if (task.isSuccessful() && fresh != null && fresh.isEmailVerified()) {
                 AppNavigator.routeSignedInUser(this);
+            } else if (visible && !isFinishing()) {
+                handler.removeCallbacks(checkVerified);
+                handler.postDelayed(checkVerified, RECHECK_MS);
             }
         });
     }
