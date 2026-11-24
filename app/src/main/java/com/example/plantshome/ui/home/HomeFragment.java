@@ -4,6 +4,7 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.GridLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -67,7 +68,7 @@ public class HomeFragment extends Fragment {
         for (int i = 0; i < cards.size(); i++) {
             String name = getString(PlantCatalog.all().get(i).name).toLowerCase(Locale.getDefault());
             if (needle.isEmpty() || name.contains(needle)) {
-                grid.addView(cards.get(i));
+                grid.addView(cards.get(i), freshCell(cards.get(i)));
                 matches++;
             }
         }
@@ -75,6 +76,19 @@ public class HomeFragment extends Fragment {
         binding.textHome.setText(matches == 0
                 ? getString(R.string.search_no_results, query)
                 : getString(R.string.home_title));
+    }
+
+    /**
+     * GridLayout writes each card's cell into its LayoutParams. Re-adding a card with its old
+     * cell breaks the grid (and crashes once the row is past rowCount), so let the grid place it
+     * again, with the same weights as in fragment_home.xml.
+     */
+    private static GridLayout.LayoutParams freshCell(View card) {
+        GridLayout.LayoutParams params = new GridLayout.LayoutParams(
+                (ViewGroup.MarginLayoutParams) card.getLayoutParams());
+        params.rowSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+        params.columnSpec = GridLayout.spec(GridLayout.UNDEFINED, 1f);
+        return params;
     }
 
     private static void bindCard(View card, Plant plant) {
