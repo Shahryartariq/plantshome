@@ -19,7 +19,8 @@ android {
         versionCode 3
         versionName '1.2.0'
 
-        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+        // Points Firebase Auth at a local emulator when run with -e authEmulatorHost <host>.
+        testInstrumentationRunner 'com.example.plantshome.e2e.E2ERunner'
     }
 
     signingConfigs {
@@ -105,4 +106,8 @@ dependencies {
     testImplementation libs.androidx.test.core
     androidTestImplementation libs.androidx.test.junit
     androidTestImplementation libs.androidx.test.espresso
+    androidTestImplementation libs.androidx.test.espresso.intents
+    androidTestImplementation libs.androidx.test.runner
+    androidTestImplementation libs.androidx.test.rules
+    androidTestImplementation libs.androidx.work.testing
 }

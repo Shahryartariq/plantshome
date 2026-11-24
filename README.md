@@ -7,6 +7,7 @@ Built in Java with Firebase Authentication, AndroidX Navigation and WorkManager.
 I designed and built PlantsHome as my semester project in 2021. In 2026 I brought it up to date without changing the design: a current SDK and build tools, every screen working end to end, tests, CI and a release pipeline.
 
 [![Android CI](https://github.com/Shahryartariq/plantshome/actions/workflows/android.yml/badge.svg)](https://github.com/Shahryartariq/plantshome/actions/workflows/android.yml)
+[![End-to-end](https://github.com/Shahryartariq/plantshome/actions/workflows/e2e.yml/badge.svg)](https://github.com/Shahryartariq/plantshome/actions/workflows/e2e.yml)
 
 ## Screenshots
 
@@ -112,6 +113,7 @@ Play Store listing text lives in [`fastlane/metadata/android/en-US`](fastlane/me
 | --- | --- | --- |
 | [`android.yml`](.github/workflows/android.yml) | every push to `main` and every pull request | debug and release builds, Lint, unit tests, debug APK artifact |
 | [`release.yml`](.github/workflows/release.yml) | a pushed tag like `v1.2.0` | builds the app and attaches it to a GitHub Release (signed AAB too when the keystore secrets are set) |
+| [`e2e.yml`](.github/workflows/e2e.yml) | pull requests that touch the app, and pushes to `main` | runs the whole app on an Android 14 emulator against the Firebase Auth emulator: sign up, verify email, every screen, reminder notification, sign out, sign in, delete account |
 | [`screenshots.yml`](.github/workflows/screenshots.yml) | a pushed branch named `screenshots/…` | renders the README screenshots and commits them to that branch |
 
 CI uses the `GOOGLE_SERVICES_JSON` repository secret when it is set. Without it, CI builds against a placeholder config that compiles but can't sign in. `release.yml` requires the secret.
