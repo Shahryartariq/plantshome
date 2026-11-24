@@ -12,6 +12,14 @@ adb install -r -g app/build/outputs/apk/debug/app-debug.apk
 adb install -r -g app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
 adb logcat -c
 
+# A freshly booted emulator can show a lock screen or a system dialog ("System UI isn't
+# responding") that takes window focus from the app. Wait for boot, unlock, close dialogs.
+until [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" = "1" ]; do sleep 2; done
+sleep 10
+adb shell input keyevent 82
+adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS > /dev/null
+sleep 3
+
 adb shell am instrument -w -r \
   -e authEmulatorHost 10.0.2.2 \
   -e class com.example.plantshome.e2e.FullJourneyTest \
