@@ -25,6 +25,9 @@ import java.util.Locale;
 
 public class HomeFragment extends Fragment {
 
+    private static final int COLUMNS = 2;
+    private static final int ROW_HEIGHT_DP = 200;
+
     private FragmentHomeBinding binding;
     /** The cards in their original order, so filtering can put them back. */
     private final List<View> cards = new ArrayList<>();
@@ -72,6 +75,10 @@ public class HomeFragment extends Fragment {
                 matches++;
             }
         }
+        // fragment_home.xml gives the grid a 1000dp minimum height: 5 rows of 200dp for 10 cards.
+        // Keep 200dp per row when fewer cards show, instead of stretching them over 1000dp.
+        int rows = (matches + COLUMNS - 1) / COLUMNS;
+        grid.setMinimumHeight(rows * Math.round(ROW_HEIGHT_DP * getResources().getDisplayMetrics().density));
         // With no matches the grid is empty, so the title explains why.
         binding.textHome.setText(matches == 0
                 ? getString(R.string.search_no_results, query)

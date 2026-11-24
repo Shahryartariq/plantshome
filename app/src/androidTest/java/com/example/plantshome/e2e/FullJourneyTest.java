@@ -47,7 +47,10 @@ import com.google.firebase.auth.FirebaseAuth;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.TestWatcher;
+import org.junit.runner.Description;
 import org.junit.runner.RunWith;
 
 import java.io.File;
@@ -67,6 +70,15 @@ public class FullJourneyTest {
     private static final long LONG = 30_000;
     private static final String NAME = "E2E Tester";
     private static final String PASSWORD = "PlantsHome#2026";
+
+    /** On failure, keep a picture of what the phone showed. */
+    @Rule
+    public final TestWatcher screenshotOnFailure = new TestWatcher() {
+        @Override
+        protected void failed(Throwable e, Description description) {
+            E2E.screenshot("zz-failure");
+        }
+    };
 
     @Before
     public void setUp() {
